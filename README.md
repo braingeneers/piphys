@@ -11,17 +11,23 @@ Piphys is an inexpensive open source neurophysiological recording platform based
 
 Piphys modules can be used in a fleet to enable long-term observations of neural development, organization, and activity at scale. 
 
+
 ## Design Files
 
 ### Hardware
 - Raspberry Pi expansion circuit board for and Intan RHD2000 bioamplifier chip.
 - Electrode adapter circuit board for Axion CytoView MEA Plate.
 
-Source files, documentation, and files for manufacturing are in [`./Hardware`](https://github.com/braingeneers/piphys/tree/main/Hardware).
+Source files, documentation, and files for manufacturing each circuit board are in [`./Hardware`](https://github.com/braingeneers/piphys/tree/main/Hardware).
+
+#### Electrode mapping
+
+<img src="./img/channel_map.png" height="280">
 
 ### Mechanical
 CAD files in for the electrode plate holder are in [`./Mechanical/AxionPlateHolder`](https://github.com/braingeneers/piphys/tree/main/Mechanical/AxionPlateHolder).
 
+Assembly Order:
 ```
 AxionPlateHolder_CNC_ClampTop_Aluminum
 ---------------------------------------
