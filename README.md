@@ -17,10 +17,10 @@ Piphys modules can be used in a fleet to enable long-term observations of neural
 - Raspberry Pi expansion circuit board for and Intan RHD2000 bioamplifier chip.
 - Electrode adapter circuit board for Axion CytoView MEA Plate.
 
-Source files, documentation, and files for manufacturing are in [`./Hardware`](https://github.com/braingeneers/piphys/Hardware).
+Source files, documentation, and files for manufacturing are in [`./Hardware`](https://github.com/braingeneers/piphys/tree/main/Hardware).
 
 ### Mechanical
-CAD files in for the electrode plate holder are in [`./Mechanical/AxionPlateHolder`](https://github.com/braingeneers/piphys/AxionPlateHolder).
+CAD files in for the electrode plate holder are in [`./Mechanical/AxionPlateHolder`](https://github.com/braingeneers/piphys/tree/main/Mechanical/AxionPlateHolder).
 
 ```
 AxionPlateHolder_CNC_ClampTop_Aluminum
@@ -32,7 +32,7 @@ AxionPlateHolder_CNC_ClampBottom_Aluminum
 ```
 
 ### Software
-Software to enable voltage sampling and user interaction, with accopmanying documentation are in [`./Software`](https://github.com/braingeneers/piphys/Software).
+Software to enable voltage sampling and user interaction, with accopmanying documentation are in [`./Software`](https://github.com/braingeneers/piphys/tree/main/Software).
 
 See [`braingeneerpy`](https://github.com/braingeneers/braingeneerspy) Python package for IoT communication library.
 
