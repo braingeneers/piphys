@@ -24,6 +24,8 @@ Source files, documentation, and files for manufacturing each circuit board are 
 
 <img src="./img/channel_map.png" height="280">
 
+There are 64 electrodes in a well B2 of the Axion CytoView MEA Plate. The electrode adapter circuit board allows 32 of the 64 electrodes to be recorded by Piphys. The green dots are the recorded channels, labeled with their channel number in the data file sampling sequence.
+
 ### Mechanical
 CAD files in for the electrode plate holder are in [`./Mechanical/AxionPlateHolder`](https://github.com/braingeneers/piphys/tree/main/Mechanical/AxionPlateHolder).
 
