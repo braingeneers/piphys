@@ -1,0 +1,24 @@
+{
+    "Header": {
+        "Comment": "All values are metric (mm)",
+        "CreationDate": "2020-09-22T17:29:28Z",
+        "GenerationSoftware": {
+            "Application": "EAGLE",
+            "Vendor": "Autodesk",
+            "Version": "9.6.2"
+        },
+        "Part": "Single"
+    },
+    "Overall": {
+        "BoardThickness": 1.5748,
+        "LayerNumber": 4,
+        "Name": {
+            "ProjectId": "AxionAdapter"
+        },
+        "Owner": "Kate Voitiuk <kvoitiuk@ucsc.edu>",
+        "Size": {
+            "X": 41.91,
+            "Y": 31.75
+        }
+    }
+}

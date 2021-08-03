@@ -1,0 +1,24 @@
+{
+    "Header": {
+        "Comment": "All values are metric (mm)",
+        "CreationDate": "2020-10-05T19:43:37Z",
+        "GenerationSoftware": {
+            "Application": "EAGLE",
+            "Vendor": "Autodesk",
+            "Version": "9.6.2"
+        },
+        "Part": "Single"
+    },
+    "Overall": {
+        "BoardThickness": 1.5748,
+        "LayerNumber": 4,
+        "Name": {
+            "ProjectId": "RasPi_Controller_RHD_Rev3_GND_Stitch"
+        },
+        "Owner": "Kate Voitiuk <kvoitiuk@ucsc.edu>",
+        "Size": {
+            "X": 86,
+            "Y": 58
+        }
+    }
+}
