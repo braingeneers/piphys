@@ -26,11 +26,12 @@ void AwsIot::iotReadJson(){
     ApiHandle apiHandle;
 
     String endpoint = "ahp00abmtph4i-ats.iot.us-west-2.amazonaws.com";
-    String certificatePath = "/home/pi/Desktop/raspintan-master/rhd_datastream/Certificates/7526fdcf8b-certificate.pem.crt";
-    String keyPath = "/home/pi/Desktop/raspintan-master/rhd_datastream/Certificates/7526fdcf8b-private.pem.key";
-    String caFile = "/home/pi/Desktop/raspintan-master/rhd_datastream/Certificates/AmazonRootCA1.pem";
-    String topic("test/topic");
-    String clientId(String("test-") + Aws::Crt::UUID().ToString());
+    String certificatePath = "/home/pi/Desktop/piphys_software_master/rhd_datastream/Certificates/8cb742699e-certificate.pem.crt";
+    String keyPath = "/home/pi/Desktop/piphys_software_master/rhd_datastream/Certificates/8cb742699e-private.pem.key";
+    String caFile = "/home/pi/Desktop/piphys_software_master/rhd_datastream/Certificates/AmazonRootCA1.pem";
+    String topic("device/ephys/deepthought/command/stream-data");
+    //String clientId(String("test-") + Aws::Crt::UUID().ToString());
+    String clientId("deepthought");
     String signingRegion;
     String proxyHost;
 

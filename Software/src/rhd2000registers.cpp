@@ -1059,7 +1059,7 @@ int Rhd2000Registers::createCommandListZcheckDac(vector<uint16_t> &commandList, 
     return static_cast<int>(commandList.size());
 }
 
-// Create a list of 32768 commands convert data from each channel (16 channels)
+// Create a list of 32 commands convert data from each channel (32 channels)
 // Returns the length of the command list.
 int Rhd2000Registers::createCommandListConvert(vector<uint16_t> &commandList)
 {
@@ -1097,10 +1097,6 @@ int Rhd2000Registers::createCommandListConvert(vector<uint16_t> &commandList)
         commandList.push_back(createRhd2000Command(Rhd2000CommandConvert, 29));
         commandList.push_back(createRhd2000Command(Rhd2000CommandConvert, 30));
         commandList.push_back(createRhd2000Command(Rhd2000CommandConvert, 31));
-        
-        //commandList.push_back(createRhd2000Command(Rhd2000CommandConvert, 11));
-        
-        //commandList.push_back(createRhd2000Command(Rhd2000CommandConvert, 15));
     
     orderEndianCommandList(commandList);
  

@@ -24,13 +24,19 @@
 #include <queue>
 #include <mutex>
 #include <vector>
+#include <boost/thread/thread.hpp>
+#include <boost/lockfree/spsc_queue.hpp>
+#include <sw/redis++/redis++.h>
+#include <jsoncpp/json/json.h>
 #include "rhd2000registers.h"
 //#include "lockfreequeue.h"
 #include "vectorbuffer.hpp"
 #include "awsiot.h"
 
+
 class Rhd2000Registers;
 using namespace std;
+using namespace sw::redis;
 
 //struct ReferenceSource {
     //int stream;
@@ -45,12 +51,29 @@ public:
     RaspiBoard(int commandLoop);   
     ~RaspiBoard();      
     
+    bool stop;
+    double realSampleRate;
+    vector<char> spiDataBuffer;
+    int recordLength;
+    atomic<bool> redisReady = false;
+    
+    // std::string redisHost = "127.0.0.1";
+    int redisPort = 6379;    // Optional. The default port is 6379.
+    std::string redisHost = "redis.braingeneers.gi.ucsc.edu";
+    std::string redisPassword = "z2NNUhDJNW3l3uOiYqfDQ04nwx7Neid08p11Hi18cvA2CPd89BRU8cm0YyCbrDrvn2s6MZICbfoZreWx5RWCDMcNFhLeLLg6N1o";
+    std::string deviceName = "data-deepthought";
+
+    atomic<int> spiDataNum = 0;
+    //int dataFileSize;
+    
+    ofstream jsonFile1;
+    
    // void initialize(int sampleRateIndex, double desiredLowerBandwidth, double desiredUpperBandwidth, double desiredDspCutoffFreq);
 
 	int open();
 	bool uploadFpgaBitfile(string filename);
 	
-	bool stop;
+
 
 	enum AmplifierSampleRate {          // on RPI3, per channel
 	    SampleRate2000Hz,
@@ -62,6 +85,7 @@ public:
 	    SampleRate12500Hz,
 	    SampleRate15000Hz,
 	    SampleRate20000Hz,
+	    SampleRate25000Hz,
 	    SampleRate30000Hz,
 	};
 
@@ -93,6 +117,12 @@ public:
     void saveRegisterValue(vector<char> &raspiReceive);
     void startSaveFile();
     void breakProgram();
+    void metadataJson(double boardSampleRate, string expName, double realSampleRate);
+    void openMetadataJson(ofstream &outputJFile);
+    void writeMetadataJson(ofstream &outputJFile, double realSampleRate);
+    void closeMetadataJson(ofstream &outputJFile);
+    void saveDataFile();
+    void callRedis();
 
 	void resetBoard();
     void resetFpga();
@@ -216,16 +246,21 @@ public:
 private:
     
     double boardSampleRate;
+    int redisSec;  // time of recording chunks for redis
+    int fileRecTime;
     void changeSampleRate(int sampleRateIndex, double desiredLowerBandwidth, double desiredUpperBandwidth, double desiredDspCutoffFreq);
-    int numSpiPorts;
+    //int numSpiPorts;
+    mutex redisMtx;
+    vector<char> redisData;
     
     //Rhd2000Registers::ChargeRecoveryCurrentLimit chargeRecoveryCurrentLimit;
     
     Rhd2000Registers *chipRegisters;
     vbuffer * dataQueue = new vbuffer();
     AwsIot *awsiot = new AwsIot();
+    boost::lockfree::spsc_queue<int, boost::lockfree::capacity<15000*32*2> > spsc_queue;  
     
-    double chargeRecoveryTargetVoltage;
+   // double chargeRecoveryTargetVoltage;
     //double desiredDspCutoffFreq;
     double actualDspCutoffFreq;
    // double desiredUpperBandwidth;
@@ -235,114 +270,26 @@ private:
     double actualLowerBandwidth;
     double actualLowerSettleBandwidth;
     bool dspEnabled;
-    double notchFilterFrequency;
-    double notchFilterBandwidth;
-    bool notchFilterEnabled;
-    double highpassFilterFrequency;
-    bool highpassFilterEnabled;
-    double desiredImpedanceFreq;
-    double actualImpedanceFreq;
-    bool impedanceFreqValid;
-    bool useFastSettle;
-    bool headstageGlobalSettle;
-    bool chargeRecoveryMode;
     
-    bool synthMode;
-    bool stimParamsHaveChanged;
+    //double notchFilterFrequency;
+    //double notchFilterBandwidth;
+    //bool notchFilterEnabled;
+    //double highpassFilterFrequency;
+    //bool highpassFilterEnabled;
+    //double desiredImpedanceFreq;
+    //double actualImpedanceFreq;
+    //bool impedanceFreqValid;
+    //bool useFastSettle;
+    //bool headstageGlobalSettle;
+    //bool chargeRecoveryMode;
+    
+    //bool synthMode;
+    //bool stimParamsHaveChanged;
   //  ReferenceSource referenceSource;
     
 	AmplifierSampleRate sampleRate;
-    unsigned int usbBufferSize;
-	int numDataStreams; // total number of data streams currently enabled
-//	int dataStreamEnabled[MAX_NUM_DATA_STREAMS]; // 0 (disabled) or 1 (enabled)
-	vector<int> cableDelay;
-
-    // Methods in this class are designed to be thread-safe.  This variable is used to ensure that.
-    std::mutex okMutex;
-
-	// Buffer for reading bytes from USB interface
-    unsigned char* usbBuffer;
-
-	// Buffers for writing bytes to command RAM
-	unsigned char commandBufferMsw[65536];
-	unsigned char commandBufferLsw[65536];
-
-	// Opal Kelly module USB interface endpoint addresses
-	enum OkEndPoint {
-		WireInResetRun = 0x00,
-		WireInMaxTimeStepLsb = 0x01,
-		WireInMaxTimeStepMsb = 0x02,
-		WireInDataFreqPll = 0x03,
-		WireInMisoDelay = 0x04,
-        WireInStimCmdMode = 0x05,
-        WireInStimRegAddr = 0x06,
-        WireInStimRegWord = 0x07,
-		WireInDcAmpConvert = 0x08,
-		WireInExtraStates = 0x09,
-        WireInDacReref = 0x0a,
-//		unused = 0x0b,
-        WireInAuxEnable = 0x0c,
-        WireInGlobalSettleSelect = 0x0d,
-//		unused = 0x0e,
-        WireInAdcThreshold = 0x0f,
-        WireInSerialDigitalInCntl = 0x10,
-		WireInLedDisplay = 0x11,
-        WireInManualTriggers = 0x12,
-        WireInTtlOutMode = 0x13,
-		WireInDataStreamEn = 0x14,
-//      unused = 0x15,
-		WireInDacSource1 = 0x16,
-		WireInDacSource2 = 0x17,
-		WireInDacSource3 = 0x18,
-		WireInDacSource4 = 0x19,
-		WireInDacSource5 = 0x1a,
-		WireInDacSource6 = 0x1b,
-		WireInDacSource7 = 0x1c,
-		WireInDacSource8 = 0x1d,
-		WireInDacManual = 0x1e,
-		WireInMultiUse = 0x1f,
-
-		TrigInDcmProg = 0x40,
-		TrigInSpiStart = 0x41,
-		TrigInRamAddrReset = 0x42,
-        TrigInDacThresh = 0x43,
-        TrigInDacHpf = 0x44,
-        TrigInAuxCmdLength = 0x45,
-
-		WireOutNumWordsLsb = 0x20,
-		WireOutNumWordsMsb = 0x21,
-		WireOutSpiRunning = 0x22,
-		WireOutTtlIn = 0x23,
-		WireOutDataClkLocked = 0x24,
-		WireOutBoardMode = 0x25,
-        WireOutSerialDigitalIn = 0x26,
-		WireOutBoardId = 0x3e,
-		WireOutBoardVersion = 0x3f,
-
-		PipeInAuxCmd1Msw = 0x80,
-		PipeInAuxCmd1Lsw = 0x81,
-		PipeInAuxCmd2Msw = 0x82,
-		PipeInAuxCmd2Lsw = 0x83,
-		PipeInAuxCmd3Msw = 0x84,
-		PipeInAuxCmd3Lsw = 0x85,
-		PipeInAuxCmd4Msw = 0x86,
-		PipeInAuxCmd4Lsw = 0x87,
-
-		PipeOutData = 0xa0
-	};
-
-	string opalKellyModelName(int model) const;
-	double getSystemClockFreq() const;
-
-	bool isDcmProgDone() const;
-	bool isDataClockLocked() const;
-
-    unsigned int lastNumWordsInFifo;
-    bool numWordsHasBeenUpdated;
-    unsigned int numWordsInFifo();
-    
-    
+        
 };
 
-#endif // Rhd2000EVALBOARD_H
+#endif 
 

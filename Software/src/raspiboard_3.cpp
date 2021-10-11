@@ -19,6 +19,7 @@
 //----------------------------------------------------------------------------------
 
 #include <iostream>
+#include <unistd.h>
 #include <iomanip>
 #include <fstream>
 #include <vector>
@@ -33,6 +34,7 @@
 #include <cstdlib>
 #include <string>
 #include <sw/redis++/redis++.h>
+#include <jsoncpp/json/json.h>
 
 #include "raspiboard.h"
 extern "C" {
@@ -45,7 +47,10 @@ extern "C" {
 // Constructor
 RaspiBoard::RaspiBoard(int commandLoop)
 {
-    cout << commandLoop << endl;
+   // redisSec = 6;        // 6 seconds
+   // fileRecTime = 2*60;  // 2 minutes, in seconds
+   // dataQueue->maxTime = fileRecTime/redisSec;  // this number should always be an integer
+   // cout << "Recording time for each dataset is: "<< fileRecTime/60 << " mins" << endl;
     // init board
     bcm2835_init();
     if (!bcm2835_init()) {
@@ -68,6 +73,7 @@ RaspiBoard::RaspiBoard(int commandLoop)
     
     thread tiot(&AwsIot::iotReadJson, awsiot);
     
+
     while(true){
         cout << "waiting ..." << endl;
         std::unique_lock<std::mutex> lck(awsiot->mtx);
@@ -75,7 +81,11 @@ RaspiBoard::RaspiBoard(int commandLoop)
         
         changeSampleRate(awsiot->iotSampleRateIndex, awsiot->iotLowerBandwidth, awsiot->iotUpperBandwidth, awsiot->iotDspCutoffFreq);
         cout << "sample rate is " << int(boardSampleRate) << "s/s" << endl;
-        thread tchunck(&vbuffer::consumeAll, dataQueue, int(boardSampleRate)*5*32*2);  // chunck size is seconds * channels * 2 bytes per sample
+        
+       // metadataJson(boardSampleRate);  //add more data into this file
+       // thread tchunck(&vbuffer::consumeAll, dataQueue, int(boardSampleRate)*redisSec*32*2);  // chunck size is seconds * channels * 2 bytes per sample
+        thread tchunck(&RaspiBoard::saveDataFile, this);
+        thread thRedis(&RaspiBoard::callRedis, this);
         thread tcheck(&AwsIot::checkTimestamp, awsiot);
         tcheck.detach(); // use detach because main thread doesn't need to wait for checkTimestamp to finish. In most of the time it sleeps
         runConvertCommandList();
@@ -304,7 +314,7 @@ void RaspiBoard::runConvertCommandList()
     int commandSequenceLength;
     vector<uint16_t> commandList;
 
-    // Create a command list with 32*commandLoop convert commands
+    // Create a command list with 32 convert commands
     commandSequenceLength = chipRegisters->createCommandListConvert(commandList);
    // printCommandList(commandList);
      
@@ -318,26 +328,37 @@ void RaspiBoard::runConvertCommandList()
 
    // cout << "command length = " << commandLen << endl;
     cout << "Start recording..." << endl;
-  //  cout << "Press 'q' then 'Enter' to stop: " << endl;
     
-    // auto start = chrono::high_resolution_clock::now();
+     auto start = chrono::high_resolution_clock::now();
 
     while(!awsiot->stop){
-        // receive spi data and write to file as signed integer
+        // receive spi data and write to file as raw binary
         for(int i = 0; i < commandLen/2; i ++)
         {
             commChar[0] = commChar[2*i];
             commChar[1] = commChar[2*i+1];
             bcm2835_spi_transfernb(commChar, raspiRec, sizeof(raspiRec));  
-            dataQueue->pushData(raspiRec[0]);
-            dataQueue->pushData(raspiRec[1]);
-            dataQueue->count ++;
+            spsc_queue.push(raspiRec[0]);
+            spsc_queue.push(raspiRec[1]);
+            spiDataNum ++;
+            
+            //dataQueue->pushData(raspiRec[0]);
+            //dataQueue->pushData(raspiRec[1]);
+            //dataQueue->count ++;
+            
         }
     }
     
-    if(awsiot->stop){
-        dataQueue->stopQ = true;
-        }
+    //auto end = chrono::high_resolution_clock::now();
+    //auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+   
+    //cout << "SPI speed :" << dataQueue->count ++/32/(duration.count()/1000000) << " sample/second per channel" <<endl;
+    //realSampleRate = dataQueue->count ++/32/(duration.count()/1000000);
+    
+    
+    //if(awsiot->stop){
+        //dataQueue->stopQ = true;
+        //}
        
     //cout << "File write compeleted!" << endl;
   //  cout << "Concatenating files to 'start-time_end-time.txt'" << endl;
@@ -465,31 +486,36 @@ bool RaspiBoard::setSampleRate(AmplifierSampleRate newSampleRate)
     switch (newSampleRate){
     case SampleRate2000Hz:
      //  bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_65536);
-         bcm2835_spi_set_speed_hz(32000*32);
+        bcm2835_spi_set_speed_hz(32000*32);
         break;
     case SampleRate3000Hz:
-         bcm2835_spi_set_speed_hz(48000*32);
+        bcm2835_spi_set_speed_hz(48000*32);
         break;
     case SampleRate4000Hz:
         bcm2835_spi_set_speed_hz(64000*32);
         break;
     case SampleRate5000Hz:
-       bcm2835_spi_set_speed_hz(80000*32);
+        bcm2835_spi_set_speed_hz(80000*32);
         break;
     case SampleRate6250Hz:
-       bcm2835_spi_set_speed_hz(100000*32);
+        bcm2835_spi_set_speed_hz(100000*32);
         break;
     case SampleRate10000Hz:
-       bcm2835_spi_set_speed_hz(160000*32);
+       // bcm2835_spi_set_speed_hz(160000*32);
+        bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_32);
         break;
     case SampleRate12500Hz:
-       bcm2835_spi_set_speed_hz(200000*32);
+        bcm2835_spi_set_speed_hz(200000*64);      // 64 is not a typo, it was matched to the sample rate
         break;
     case SampleRate15000Hz:
-        bcm2835_spi_set_speed_hz(240000*32);
+        // bcm2835_spi_set_speed_hz(240000*32);
+        bcm2835_spi_setClockDivider(BCM2835_SPI_CLOCK_DIVIDER_8);
         break;
-    case SampleRate20000Hz:
+    case SampleRate20000Hz:                      // the following cases are not used 
         bcm2835_spi_set_speed_hz(320000*32);
+        break;
+    case SampleRate25000Hz:
+        bcm2835_spi_set_speed_hz(400000*32);
         break;
     case SampleRate30000Hz:
         bcm2835_spi_set_speed_hz(480000*32);
@@ -542,6 +568,10 @@ void RaspiBoard::changeSampleRate(int sampleRateIndex, double desiredLowerBandwi
             sampleRate = SampleRate20000Hz;
             break;
         case 9:
+            boardSampleRate = 25000.0;          
+            sampleRate = SampleRate25000Hz;
+            break;   
+        case 10:
             boardSampleRate = 30000.0;          
             sampleRate = SampleRate30000Hz;
             break;
@@ -554,13 +584,11 @@ void RaspiBoard::changeSampleRate(int sampleRateIndex, double desiredLowerBandwi
     int commandSequenceLength;
     vector<uint16_t> commandList;
     vector<uint16_t> auxcommandList;
-    
-    if (!synthMode) {   // need a similar symbol to replace this
-        setSampleRate(sampleRate);
+     
+    setSampleRate(sampleRate);
         
-    }
-        // Before generating register configuration command sequences, set amplifier
-        // bandwidth paramters.
+    // Before generating register configuration command sequences, set amplifier
+    // bandwidth paramters.
     actualDspCutoffFreq = chipRegisters.setDspCutoffFreq(desiredDspCutoffFreq);
     actualLowerBandwidth = chipRegisters.setLowerBandwidth(desiredLowerBandwidth);
     actualUpperBandwidth = chipRegisters.setUpperBandwidth(desiredUpperBandwidth);
@@ -577,7 +605,7 @@ void RaspiBoard::changeSampleRate(int sampleRateIndex, double desiredLowerBandwi
     cout << "Desired/Actual Lower Amp Settle Bandwidth: " << desiredLowerSettleBandwidth << " Hz / " << actualLowerSettleBandwidth << " Hz" << endl;
     cout << "Desired/Actual Upper Bandwidth: " << fixed << desiredUpperBandwidth / 1000.0 << " kHz / " << actualUpperBandwidth / 1000.0 << " kHz" << endl;
     
-     if (!synthMode) {
+     
          chipRegisters.createCommandListDummy(commandList, 64*4, chipRegisters.createRhd2000Command(Rhd2000Registers::Rhd2000CommandRegRead, 44)); // create a dummy command list for commandList vector, later copy the right commands to the corresponding slot
         
          // Create a list of 60 commands to program most RAM registers on a RHD2000 chip
@@ -595,9 +623,209 @@ void RaspiBoard::changeSampleRate(int sampleRateIndex, double desiredLowerBandwi
       //  printCommandList(commandList);
         // run aux commands
          runCommandList(commandList);
-     }
+     
+}
+
+// save metadata to a json file before recording. Can add more values 
+void RaspiBoard::metadataJson(double boardSampleRate, string expName, double realSampleRate)
+{
+    Json::Value root;
+    Json::StreamWriterBuilder builder;
+    const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter());
+
+    root["version"] = "0.0.1";
+    root["name"] = expName;
+   
+    time_t t = time(0);
+    struct tm *now = localtime(&t);
+    char cntime[80];
+    strftime(cntime, 80, "%Y-%m-%d-%H-%M-%S", now);
+    root["timestamp"] = cntime;  // cntime is a char pointer, this may cause problem
+    
+    root["sample_rate"] = boardSampleRate;
+    root["real_sample_rate"] = realSampleRate;
+    root["recording_length"] = recordLength;
+    root["hardware"] = "Raspi RHD Controller Rev2";
+    root["num_channels"] = 32;
+    
+    string outputFName(cntime);
+    
+    ofstream outputJFile("raspi-" + outputFName + ".config");
+  //  outputJFile.open("%s", beginName, cntime, "%s", fileType);
+    writer->write(root, &outputJFile);
+    outputJFile.close();
+
+}
+
+// open an Json to record real sample rate for each data file 
+void RaspiBoard::openMetadataJson(ofstream &outputJFile)
+{
+    time_t t = time(0);
+    struct tm *now = localtime(&t);
+    char cntime[80];
+    strftime(cntime, 80, "%Y-%m-%d-%H-%M-%S", now);
+    
+    string outputFName(cntime);
+    
+    outputJFile.open(outputFName + "-RealSampleRate.Json");
+
+}
+
+void RaspiBoard::writeMetadataJson(ofstream &outputJFile, double realSampleRate)
+{
+    Json::Value root;
+    Json::StreamWriterBuilder builder;
+    const std::unique_ptr<Json::StreamWriter> writer(builder.newStreamWriter()); 
+    
+    time_t t = time(0);
+    struct tm *now = localtime(&t);
+    char cntime[80];
+    strftime(cntime, 80, "%H-%M-%S", now);
+    
+    root["timestamp"] = cntime;  // cntime is a char pointer, this may cause problem
+    root["real_sample_rate"] = realSampleRate;
+    
+    writer->write(root, &outputJFile);
+   // cout << "json written" << endl;
+}
+
+void RaspiBoard::closeMetadataJson(ofstream &outputJFile)
+{
+    outputJFile.close();
+}
+
+void RaspiBoard::saveDataFile()
+{
+    char spiBufferValue;
+    time_t t = time(0);
+    struct tm *now = localtime(&t);
+    char buffer[80];
+    strftime(buffer, 80, "raspi-%Y-%m-%d-%H-%M-%S", now);
+    ofstream outfile;
+    outfile.open(buffer);
+    
+    int redisBufferSize = int(boardSampleRate)*32*12;
+    char redisBuffer[redisBufferSize];
+    int tailDataNum = 0;
+    int dataFileSize = int(boardSampleRate)*32*20;     // sampleRate*channels*duration
+    
+    int redisBufferCounter = 0;                          // initiate buffer counter
+    int outfileCounter = 0;                     
+    openMetadataJson(jsonFile1);
+    writeMetadataJson(jsonFile1, 0.0);                 // to initiate the beginning time
+    
+    auto start = chrono::high_resolution_clock::now();
+    
+    while(!awsiot->stop){
+            
+            if(spsc_queue.pop(spiBufferValue)) {
+                    outfile << spiBufferValue;
+                    redisBuffer[redisBufferCounter] = spiBufferValue;
+                    outfileCounter += 1;
+                    redisBufferCounter += 1;
+                }
+                
+            if(outfileCounter == dataFileSize*2){
+                cout << "start another saving file" << endl;
+                spiDataNum = 0;
+                outfileCounter = 0;
+                outfile.close();
+                
+                auto end = chrono::high_resolution_clock::now();
+                auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+                realSampleRate = dataFileSize/32/static_cast<double>(duration.count()/1000000);
+               // cout << duration.count() << endl;
+               // cout << realSampleRate << endl;
+                
+                writeMetadataJson(jsonFile1, realSampleRate);
+                    
+                time_t t = time(0);
+                struct tm *now = localtime(&t);
+                //char buffer[80];
+                strftime(buffer, 80, "raspi-%Y-%m-%d-%H-%M-%S", now);
+
+                outfile.open(buffer);
+                
+                start = chrono::high_resolution_clock::now();
+                }
+             if(redisBufferCounter ==  redisBufferSize){
+                redisBufferCounter = 0;
+                redisMtx.lock();
+                redisData.assign(redisBuffer, redisBuffer+redisBufferSize);
+                redisMtx.unlock();
+             //   cout << "redis Data Size = " << redisData.size() << endl;
+                redisReady = true;
+                }
+            
+    }
+    
+    if(awsiot->stop){
+        cout << "saving the tail" << endl;                       
+        
+     //   auto start = chrono::high_resolution_clock::now();
+        
+        while(spsc_queue.pop(spiBufferValue)){
+        outfile << spiBufferValue;
+        tailDataNum ++;
+        }
     
         
+        auto end = chrono::high_resolution_clock::now();
+        auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+        realSampleRate = spiDataNum/32/static_cast<double>(duration.count()/1000000);
+        writeMetadataJson(jsonFile1, realSampleRate);
+        cout << "real Sample Rate = " << realSampleRate << endl;
+        cout << "tailDataNum = " << static_cast<int>(spiDataNum) << endl;
+        cout << "duration = " << duration.count() << endl;
+        cout << "tail remaining = " << tailDataNum << endl;
+        
+        outfile.close();
     }
+    
+    
+    closeMetadataJson(jsonFile1);
+    cout << "Binary file written!" << endl;
+    outfile.close();
+    tailDataNum = 0;
+}
+
+void RaspiBoard::callRedis()
+{
+   
+    while(!awsiot->stop){
+  
+    if (redisReady){
+    //    cout << "redis is ready" << endl;
+        // auto start = chrono::high_resolution_clock::now(); 
+        //string s(redisData, redisData+(sizeof(redisData)/sizeof(char)));   
+        string s(redisData.begin(), redisData.begin()+redisData.size());  
+        using Attrs = std::vector<pair<string, string>>;
+        Attrs attrs = { {"x", s} };
+        
+    try{
+        // set up redis
+        ConnectionOptions connection_options;
+        connection_options.host = redisHost;
+        connection_options.port = redisPort; 
+       // connection_options.password = redisPassword;   // Optional. No password by default.
+        Redis redis(connection_options);
+        //cout << "redis initialized" << endl;
+      
+        auto id = redis.xadd(deviceName, "*", attrs.begin(), attrs.end());
+        cout << "redis stream done" << endl;
+        //auto end = chrono::high_resolution_clock::now();
+        //auto duration = chrono::duration_cast<chrono::microseconds>(end - start);
+        //cout << "time cost - redis: " << duration.count() << " us" << endl;
+        
+        redisReady = false;
+        
+        }catch(const Error &e) {
+            cout << "Redis stream failed: " ;
+            cerr << e.what() << endl;
+            }
+        }
+        else{}
+    }
+}
 
 
