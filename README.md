@@ -1,8 +1,14 @@
 # piphys
 
-Piphys is available as a preprint on bioarXiv: 
+Update: The latest manuscript about Piphys has been published in IOP Journal of Neural Engineering!
 
-[Light-weight electrophysiology hardware and software platform for cloud-based neural recording experiments](https://www.biorxiv.org/content/10.1101/2021.05.18.444685v2)
+Peer-reviewed journal article: 
+
+[Light-weight electrophysiology hardware and software platform for cloud-based neural recording experiments](https://iopscience.iop.org/article/10.1088/1741-2552/ac310a/pdf)
+
+The original [preprint](https://www.biorxiv.org/content/10.1101/2021.05.18.444685v2) can still be accessed on bioRxiv.
+
+
 
 --------
 ## Overview
