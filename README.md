@@ -64,13 +64,13 @@ In order to get any license under these terms, you must agree to them as both st
 
 Copyright License
 
-The licensor grants you a copyright license for the software to do everything you might do with the software that would otherwise infringe the licensor's copyright in it for any permitted purpose.
+The licensor grants you a copyright license for the repository to do everything you might do with the repository that would otherwise infringe the licensor's copyright in it for any permitted purpose.
 
 Notices
 
-You must ensure that anyone who gets a copy of any part of the software from you also gets a copy of these terms, as well as the following copyright notice:
+You must ensure that anyone who gets a copy of any part of the repository from you also gets a copy of these terms, as well as the following copyright notice:
 
-This software is Copyright © 2021. The Regents of the University of California (“Regents”). All Rights Reserved.
+This repository is Copyright © 2021. The Regents of the University of California (“Regents”). All Rights Reserved.
 
 Noncommercial Purposes
 
@@ -90,7 +90,7 @@ Use by any charitable organization, educational institution, public research org
 
 Fair Use
 
-You may have "fair use" rights for the software under the law. These terms do not limit them.
+You may have "fair use" rights for the repository under the law. These terms do not limit them.
 
 No Other Rights
 
@@ -98,19 +98,19 @@ These terms do not allow you to sublicense or transfer any of your licenses to a
 
 Patent Defense
 
-If you make any written claim that the software infringes or contributes to infringement of any patent, all your licenses for the software granted under these terms end immediately. If your company makes such a claim, all your licenses end immediately for work on behalf of your company.
+If you make any written claim that the repository infringes or contributes to infringement of any patent, all your licenses for the repository granted under these terms end immediately. If your company makes such a claim, all your licenses end immediately for work on behalf of your company.
 
 Violations
 
-The first time you are notified in writing that you have violated any of these terms, or done anything with the software not covered by your licenses, your licenses can nonetheless continue if you come into full compliance with these terms, and take practical steps to correct past violations, within 32 days of receiving notice.  Otherwise, all your licenses end immediately.
+The first time you are notified in writing that you have violated any of these terms, or done anything with the repository not covered by your licenses, your licenses can nonetheless continue if you come into full compliance with these terms, and take practical steps to correct past violations, within 32 days of receiving notice.  Otherwise, all your licenses end immediately.
 
 No Liability
 
-As far as the law allows, the software comes as is, without any warranty or condition, and the licensor will not be liable to you for any damages arising out of these terms or the use or nature of the software, under any kind of legal claim.
+As far as the law allows, the repository comes as is, without any warranty or condition, and the licensor will not be liable to you for any damages arising out of these terms or the use or nature of the repository, under any kind of legal claim.
 
 Definitions
 
-The "licensor" is Regents, and the "software" is the software the licensor makes available under these terms.
+The "licensor" is Regents, and the "repository" is the repository the licensor makes available under these terms.
 
 "You" refers to the individual or entity agreeing to these terms.
 
@@ -118,8 +118,8 @@ The "licensor" is Regents, and the "software" is the software the licensor makes
 
 "Control" means ownership of substantially all the assets of an entity, or the power to direct its management and policies by vote, contract, or otherwise.  Control can be direct or indirect.
 
-"Your licenses" are all the licenses granted to you for the software under these terms.
+"Your licenses" are all the licenses granted to you for the repository under these terms.
 
-"Use" means anything you do with the software requiring one of your licenses.
+"Use" means anything you do with the repository requiring one of your licenses.
 
 © 2021 Braingeneers
