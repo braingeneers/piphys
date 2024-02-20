@@ -46,7 +46,7 @@ AxionPlateHolder_CNC_ClampBottom_Aluminum
 ```
 
 ### Software
-Software to enable voltage sampling and user interaction, with accopmanying documentation are in [`./Software`](https://github.com/braingeneers/piphys/tree/main/Software).
+Software to enable voltage sampling and user interaction, with accompanying documentation are in [`./Software`](https://github.com/braingeneers/piphys/tree/main/Software).
 
 See [`braingeneerpy`](https://github.com/braingeneers/braingeneerspy) Python package for IoT communication library.
 
